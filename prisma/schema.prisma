@@ -22,22 +22,34 @@ model Users {
 }
 
 model Products {
-  id          Int       @id @default(autoincrement())
-  nameProduct String
-  price       Float
-  stock       Int       @default(0)
-  category    Categorys @relation(fields: [categoryId], references: [id])
-  categoryId  Int
+  id           Int             @id @default(autoincrement())
+  nameProduct  String
+  price        Float
+  stock        Int             @default(0)
+  category     Categorys       @relation(fields: [categoryId], references: [id])
+  categoryId   Int
+  detalleVenta Detalle_venta[]
+}
+
+model Detalle_venta {
+  id              Int      @id @default(autoincrement())
+  productId       Int
+  product         Products @relation(fields: [productId], references: [id])
+  ventaId         Int
+  venta           Ventas   @relation(fields: [ventaId], references: [id])
+  cantidadVendida Float
+  precioVendido   Float
 }
 
 model Ventas {
-  id         Int      @id @default(autoincrement())
-  fecha      DateTime @default(now())
-  saldoTotal Float
-  clientId   Int
-  client     Clients  @relation(fields: [clientId], references: [id])
-  userId     Int
-  user       Users    @relation(fields: [userId], references: [id])
+  id           Int             @id @default(autoincrement())
+  fecha        DateTime        @default(now())
+  saldoTotal   Float
+  clientId     Int
+  client       Clients         @relation(fields: [clientId], references: [id])
+  userId       Int
+  user         Users           @relation(fields: [userId], references: [id])
+  detalleVenta Detalle_venta[]
 }
 
 model Categorys {
