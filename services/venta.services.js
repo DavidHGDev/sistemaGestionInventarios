@@ -12,43 +12,48 @@ class VentaServices {
         return await prisma.$transaction( async(tx) => {
             let saldoTotal = 0;
             const detallesListos = [];
+            
+            // 📝 1. LA LIBRETA DE NOTAS (Nueva)
+            const erroresDeInventario = []; 
 
-            //Empezamos por recorrer cada producto que el cliente desea comprar. 
             for(const item of items){
-                //1) buscamos el producto real en la base de datos
                 const producto = await tx.products.findUnique({
                     where: { id: Number(item.productId)}
-                })
+                });
 
+                // 2. Anotamos si no existe y SALTAMOS al siguiente producto
                 if(!producto){
-                    throw new Error('Producto no encontrado')
+                    erroresDeInventario.push(`El producto con ID ${item.productId} no existe.`);
+                    continue; // 💡 'continue' le dice al ciclo: ignora lo de abajo y pasa al siguiente item
                 }
 
-                //2) validar si hay sufiente inventario de ese producto, vital para no romper el sistema
+                // 3. Anotamos si no hay stock y SALTAMOS al siguiente producto
                 if(producto.stock < item.cantidadVendida) {
-                    throw new Error(`Stock insuficiente para ${producto.nameProduct}. Quedan ${producto.stock}.`)
+                    erroresDeInventario.push(`Falta stock de ${producto.nameProduct}: pides ${item.cantidadVendida} pero quedan ${producto.stock}.`);
+                    continue; 
                 }
 
-                //3) aquí calculamos el dinero y lo sumamos al total 
+                // Si llegó aquí, el producto está perfecto, hacemos la matemática
                 saldoTotal += (producto.price * item.cantidadVendida);
-
-                //4) preparamos el paquete de detalleVenta
                 detallesListos.push({
-                    productId: item.productId,
-                    cantidadVendida: item.cantidadVendida,
+                    productId: Number(item.productId),
+                    cantidadVendida: Number(item.cantidadVendida),
                     precioVendido: producto.price
-                })
+                });
 
-                //5) lo elegente de PRISMA, decrement, para descontar en stock.
                 await tx.products.update({
                     where: {id: Number(item.productId)},
-                    data: {
-                        stock: { decrement: Number(item.cantidadVendida) }
-                    }
-                })
+                    data: { stock: { decrement: Number(item.cantidadVendida) } }
+                });
             }
 
-            //Por último, creamos la venta con el stock organizado y los datalles de venta
+            // 🚨 4. EL REVISOR FINAL: ¿Hubo algún problema en la revisión?
+            if (erroresDeInventario.length > 0) {
+                // Si la libreta tiene anotaciones, AHORA SÍ tiramos el error con todos los mensajes unidos
+                throw new Error(erroresDeInventario.join(" | ")); 
+            }
+
+            // 5. Si la libreta está vacía, facturamos tranquilos
             const nuevaVenta = await tx.ventas.create({
                 data: {
                     clientId: Number(clientId),
@@ -63,8 +68,9 @@ class VentaServices {
                 //aquí regresamos la relación con los detalles de la venta completos. 
                 include: { detalleVenta: true }
             });
+
             return nuevaVenta;
-        })
+        });
     }
 }
 
