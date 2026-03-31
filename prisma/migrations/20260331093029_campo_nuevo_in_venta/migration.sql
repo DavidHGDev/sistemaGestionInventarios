@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Ventas" ADD COLUMN     "status" TEXT NOT NULL DEFAULT 'ACTIVA';

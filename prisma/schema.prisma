@@ -45,6 +45,7 @@ model Ventas {
   id           Int             @id @default(autoincrement())
   fecha        DateTime        @default(now())
   saldoTotal   Float
+  status       String          @default("ACTIVA")// Todas la ventas se crean activa, solo cambia cuando se anula por modidicación
   clientId     Int
   client       Clients         @relation(fields: [clientId], references: [id])
   userId       Int

@@ -11,3 +11,16 @@ export async function getAllVenta(req, res) {
         })
     }
 }
+
+export async function crearVentaConStock(req, res) {
+    try {
+        const { clientId, userId, items } = req.body;
+        const data = await ventaServices.crearVentaConStock( clientId, userId, items );
+        res.status(201).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status: 'Error',
+            message: error.message
+        })
+    }
+}

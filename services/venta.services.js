@@ -13,7 +13,7 @@ class VentaServices {
             let saldoTotal = 0;
             const detallesListos = [];
             
-            // 📝 1. LA LIBRETA DE NOTAS (Nueva)
+            // 1. LA LIBRETA DE NOTAS 
             const erroresDeInventario = []; 
 
             for(const item of items){
@@ -38,7 +38,7 @@ class VentaServices {
                 detallesListos.push({
                     productId: Number(item.productId),
                     cantidadVendida: Number(item.cantidadVendida),
-                    precioVendido: producto.price
+                    precioVendido: (producto.price)
                 });
 
                 await tx.products.update({
@@ -47,7 +47,7 @@ class VentaServices {
                 });
             }
 
-            // 🚨 4. EL REVISOR FINAL: ¿Hubo algún problema en la revisión?
+            // 🚨4. EL REVISOR FINAL: ¿Hubo algún problema en la revisión?
             if (erroresDeInventario.length > 0) {
                 // Si la libreta tiene anotaciones, AHORA SÍ tiramos el error con todos los mensajes unidos
                 throw new Error(erroresDeInventario.join(" | ")); 
@@ -70,6 +70,110 @@ class VentaServices {
             });
 
             return nuevaVenta;
+        });
+    }
+
+    async modificarVenta(ventaIdAntigua, userId, nuevosItems) {
+        // 🚀 ABRIMOS LA SUPER TRANSACCIÓN: Todo o Nada
+        return await prisma.$transaction(async (tx) => {
+            
+            // ==========================================
+            // FASE 1: REVERSAR LA FACTURA VIEJA
+            // ==========================================
+            
+            // 1. Buscamos la factura original en la base de datos
+            const ventaAntigua = await tx.ventas.findUnique({
+                where: { id: Number(ventaIdAntigua) },
+                include: { detalleVenta: true }
+            });
+
+            // 2. Validaciones de seguridad
+            if (!ventaAntigua) {
+                throw new Error("La venta que intentas modificar no existe.");
+            }
+            if (ventaAntigua.status === "ANULADA") {
+                throw new Error("No puedes modificar una venta que ya fue anulada previamente.");
+            }
+
+            // 3. Devolver los productos viejos a la bodega (Incrementar stock)
+            for (const detalle of ventaAntigua.detalleVenta) {
+                await tx.products.update({
+                    where: { id: detalle.productId },
+                    data: { stock: { increment: Number(detalle.cantidadVendida) } }
+                });
+            }
+
+            // 4. Sellar la factura vieja como ANULADA
+            await tx.ventas.update({
+                where: { id: Number(ventaIdAntigua) },
+                data: { status: "ANULADA" }
+            });
+
+
+            // ==========================================
+            // FASE 2: PROCESAR EL NUEVO CARRITO
+            // ==========================================
+            
+            let saldoTotal = 0;
+            const detallesListos = [];
+            const erroresDeInventario = []; // Nuestra libreta de notas
+
+            // 5. Recorrer los nuevos items que mandó el frontend
+            for (const item of nuevosItems) {
+                const producto = await tx.products.findUnique({
+                    where: { id: Number(item.productId) }
+                });
+
+                if (!producto) {
+                    erroresDeInventario.push(`El producto ID ${item.productId} no existe.`);
+                    continue; 
+                }
+
+                if (producto.stock < item.cantidadVendida) {
+                    erroresDeInventario.push(`Falta stock de ${producto.nameProduct}: pides ${item.cantidadVendida} pero quedan ${producto.stock}.`);
+                    continue;
+                }
+
+                // Matemática y empaque
+                saldoTotal += (producto.price * item.cantidadVendida);
+
+                detallesListos.push({
+                    productId: Number(item.productId),
+                    cantidadVendida: Number(item.cantidadVendida),
+                    precioVendido: producto.price
+                });
+
+                // 6. Sacar los nuevos productos de la bodega (Decrementar stock)
+                await tx.products.update({
+                    where: { id: Number(item.productId) },
+                    data: { stock: { decrement: Number(item.cantidadVendida) } }
+                });
+            }
+
+            // ==========================================
+            // FASE 3: VEREDICTO FINAL Y CREACIÓN
+            // ==========================================
+
+            // 7. Si hubo errores en la fase 2, rompemos la transacción aquí.
+            // ¡Esto cancela TODO! La factura vieja vuelve a estar ACTIVA y el stock no se toca.
+            if (erroresDeInventario.length > 0) {
+                throw new Error(erroresDeInventario.join(" | "));
+            }
+
+            // 8. Si todo está perfecto, emitimos la NUEVA factura
+            const nuevaVenta = await tx.ventas.create({
+                data: {
+                    clientId: ventaAntigua.clientId, // Mantenemos el mismo cliente
+                    userId: Number(userId),          // El cajero que está haciendo la modificación
+                    saldoTotal: saldoTotal,
+                    detalleVenta: {
+                        create: detallesListos
+                    }
+                },
+                include: { detalleVenta: true }
+            });
+
+            return nuevaVenta; // Devolvemos la factura impecable
         });
     }
 }
