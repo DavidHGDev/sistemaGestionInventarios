@@ -12,68 +12,78 @@ datasource db {
   provider = "postgresql"
 }
 
-model Users {
-  id       Int      @id @default(autoincrement())
+model User {
+  id       Int     @id @default(autoincrement())
   name     String?
   lastName String
-  email    String   @unique
+  email    String  @unique
   password String
-  ventas   Ventas[]
+  venta    Venta[]
 }
 
-model Products {
+model Product {
   id           Int             @id @default(autoincrement())
   nameProduct  String
   price        Float
   stock        Int             @default(0)
-  category     Categorys       @relation(fields: [categoryId], references: [id])
+  category     Category        @relation(fields: [categoryId], references: [id])
   categoryId   Int
   detalleVenta Detalle_venta[]
+  provider     Provider[]
+}
+
+model Provider {
+  id       Int       @id @default(autoincrement())
+  name     String
+  phone    String?
+  email    String?
+  producto Product[]
 }
 
 model Detalle_venta {
-  id              Int      @id @default(autoincrement())
+  id              Int     @id @default(autoincrement())
   productId       Int
-  product         Products @relation(fields: [productId], references: [id])
+  product         Product @relation(fields: [productId], references: [id])
   ventaId         Int
-  venta           Ventas   @relation(fields: [ventaId], references: [id])
+  venta           Venta   @relation(fields: [ventaId], references: [id])
   cantidadVendida Float
   precioVendido   Float
 }
 
-model Ventas {
+model Venta {
   id           Int             @id @default(autoincrement())
   fecha        DateTime        @default(now())
   saldoTotal   Float
-  status       String          @default("ACTIVA")// Todas la ventas se crean activa, solo cambia cuando se anula por modidicación
+  status       String          @default("ACTIVA") // Todas la ventas se crean activa, solo cambia cuando se anula por modidicación
   clientId     Int
-  client       Clients         @relation(fields: [clientId], references: [id])
+  client       Client          @relation(fields: [clientId], references: [id])
   userId       Int
-  user         Users           @relation(fields: [userId], references: [id])
+  user         User            @relation(fields: [userId], references: [id])
   detalleVenta Detalle_venta[]
 }
 
-model Categorys {
-  id          Int        @id @default(autoincrement())
+model Category {
+  id          Int       @id @default(autoincrement())
   name        String
   description String?
-  products    Products[]
+  product     Product[]
 }
 
-model Credits {
+model Credit {
   id           Int      @id @default(autoincrement())
   totalCredit  Float
   fecha        DateTime @default(now())
   clientId     Int
-  clientCretit Clients  @relation(fields: [clientId], references: [id])
+  clientCretit Client   @relation(fields: [clientId], references: [id])
 }
 
-model Clients {
-  id           Int       @id @default(autoincrement())
+model Client {
+  id           Int      @id @default(autoincrement())
   name         String
-  phone        String
+  phone        String?
+  email        String?
   document     Int
   tipoDocument String
-  ventas       Ventas[]
-  credits      Credits[]
+  venta        Venta[]
+  credit       Credit[]
 }

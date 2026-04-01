@@ -17,13 +17,13 @@ class UserServices {
     }
 
     async getAllUsers(){
-        return await prisma.users.findMany({
+        return await prisma.user.findMany({
             select: this.#userSelect
         });
     }
 
     async getOneUser(id) {
-        return await prisma.users.findUnique({
+        return await prisma.user.findUnique({
             where: { id: Number(id) }, select: { 
                 ...this.#userSelect, 
                 ventas: this.#ventasSelect
@@ -32,14 +32,14 @@ class UserServices {
     }
 
     async createUser(data) {
-        const newUser = await prisma.users.create({
+        const newUser = await prisma.user.create({
             data, select: this.#userSelect
         });
         return newUser;
     }
 
     async updateUser({ id, ...data }) {
-        return await prisma.users.update({
+        return await prisma.user.update({
             where: {
                 id: Number(id)
             },
@@ -48,7 +48,7 @@ class UserServices {
     }
 
     async deleteUser(id) {
-        return await prisma.users.delete({
+        return await prisma.user.delete({
             where: { id: Number(id)},
             select: this.#userSelect
         })

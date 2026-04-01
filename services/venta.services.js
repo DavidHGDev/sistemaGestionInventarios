@@ -3,7 +3,7 @@ import { prisma } from "../lib/prisma.js";
 class VentaServices {
 
     async getAllVenta(){
-        return await prisma.ventas.findMany({
+        return await prisma.venta.findMany({
             include: { detalleVenta: true }
         })
     }
@@ -17,7 +17,7 @@ class VentaServices {
             const erroresDeInventario = []; 
 
             for(const item of items){
-                const producto = await tx.products.findUnique({
+                const producto = await tx.product.findUnique({
                     where: { id: Number(item.productId)}
                 });
 
@@ -41,7 +41,7 @@ class VentaServices {
                     precioVendido: (producto.price)
                 });
 
-                await tx.products.update({
+                await tx.product.update({
                     where: {id: Number(item.productId)},
                     data: { stock: { decrement: Number(item.cantidadVendida) } }
                 });
@@ -82,7 +82,7 @@ class VentaServices {
             // ==========================================
             
             // 1. Buscamos la factura original en la base de datos
-            const ventaAntigua = await tx.ventas.findUnique({
+            const ventaAntigua = await tx.venta.findUnique({
                 where: { id: Number(ventaIdAntigua) },
                 include: { detalleVenta: true }
             });
@@ -97,14 +97,14 @@ class VentaServices {
 
             // 3. Devolver los productos viejos a la bodega (Incrementar stock)
             for (const detalle of ventaAntigua.detalleVenta) {
-                await tx.products.update({
+                await tx.product.update({
                     where: { id: detalle.productId },
                     data: { stock: { increment: Number(detalle.cantidadVendida) } }
                 });
             }
 
             // 4. Sellar la factura vieja como ANULADA
-            await tx.ventas.update({
+            await tx.venta.update({
                 where: { id: Number(ventaIdAntigua) },
                 data: { status: "ANULADA" }
             });
@@ -120,7 +120,7 @@ class VentaServices {
 
             // 5. Recorrer los nuevos items que mandó el frontend
             for (const item of nuevosItems) {
-                const producto = await tx.products.findUnique({
+                const producto = await tx.product.findUnique({
                     where: { id: Number(item.productId) }
                 });
 
@@ -144,7 +144,7 @@ class VentaServices {
                 });
 
                 // 6. Sacar los nuevos productos de la bodega (Decrementar stock)
-                await tx.products.update({
+                await tx.product.update({
                     where: { id: Number(item.productId) },
                     data: { stock: { decrement: Number(item.cantidadVendida) } }
                 });
@@ -161,7 +161,7 @@ class VentaServices {
             }
 
             // 8. Si todo está perfecto, emitimos la NUEVA factura
-            const nuevaVenta = await tx.ventas.create({
+            const nuevaVenta = await tx.venta.create({
                 data: {
                     clientId: ventaAntigua.clientId, // Mantenemos el mismo cliente
                     userId: Number(userId),          // El cajero que está haciendo la modificación
