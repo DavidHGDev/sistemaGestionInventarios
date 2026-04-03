@@ -21,8 +21,8 @@ export async function getOneUser(req, res) {
 
 export async function createUser(req, res) {
     try {
-        const { name, lastName, email, password } = req.body;
-        const newUser = await UserServices.createUser({ name, lastName, email, password });
+        const { name, lastName, email, password, role } = req.body;
+        const newUser = await UserServices.createUser({ name, lastName, email, password, role });
         res.status(201).json(newUser);
     } catch (error) {
         res.status(500).json({ status: 'Error', message: error.message })

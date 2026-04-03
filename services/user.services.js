@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma.js";
+import bcrypt from 'bcrypt';
 
 class UserServices {
 
@@ -6,7 +7,8 @@ class UserServices {
         id: true,
         name: true,
         lastName: true,
-        email: true
+        email: true,
+        role: true
     }
     #ventasSelect = {
         select: {
@@ -32,8 +34,19 @@ class UserServices {
     }
 
     async createUser(data) {
+        const { name, lastName, email, password, role } = data;
+        const saltRounds = 10;
+        const hashPassword = await bcrypt.hash(password, saltRounds);
+
         const newUser = await prisma.user.create({
-            data, select: this.#userSelect
+            data: {
+                name,
+                lastName,
+                email,
+                password: hashPassword,
+                role
+
+            }, select: this.#userSelect
         });
         return newUser;
     }
