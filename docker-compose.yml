@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:17          # Usará la última versión disponible (actualmente la 16/17)
+    container_name: db_quantix
+    restart: always                 # Si falla o reinicias la PC, intenta levantarla sola
+    environment:
+      - POSTGRES_DB=quantix
+      - POSTGRES_USER=adminDavid
+      - POSTGRES_PASSWORD=admin456
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data # Persistencia de datos (Corregido el typo anterior)
+
+  pgadmin:
+    image: dpage/pgadmin4:9    # Última versión del gestor visual
+    container_name: pgAdmin_Quantix
+    restart: always
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=davidhgdev@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD=root
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres                    # Espera a que el contenedor de postgres se inicie primero
+    volumes:
+      - ./pgadmin_data:/var/lib/pgadmin # Opcional: Para guardar tus configuraciones de la interfaz

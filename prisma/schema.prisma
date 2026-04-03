@@ -18,7 +18,7 @@ model User {
   lastName String
   email    String  @unique
   password String
-  venta    Venta[]
+  ventas   Venta[]
 }
 
 model Product {
@@ -29,7 +29,7 @@ model Product {
   category     Category        @relation(fields: [categoryId], references: [id])
   categoryId   Int
   detalleVenta Detalle_venta[]
-  provider     Provider[]
+  providers    Provider[]
 }
 
 model Provider {
@@ -37,7 +37,7 @@ model Provider {
   name     String
   phone    String?
   email    String?
-  producto Product[]
+  products Product[]
 }
 
 model Detalle_venta {
@@ -55,6 +55,7 @@ model Venta {
   fecha        DateTime        @default(now())
   saldoTotal   Float
   status       String          @default("ACTIVA") // Todas la ventas se crean activa, solo cambia cuando se anula por modidicación
+  isContado    Boolean         @default(true)
   clientId     Int
   client       Client          @relation(fields: [clientId], references: [id])
   userId       Int
@@ -66,7 +67,7 @@ model Category {
   id          Int       @id @default(autoincrement())
   name        String
   description String?
-  product     Product[]
+  products    Product[]
 }
 
 model Credit {
@@ -82,8 +83,8 @@ model Client {
   name         String
   phone        String?
   email        String?
-  document     Int
+  document     String   @unique
   tipoDocument String
-  venta        Venta[]
-  credit       Credit[]
+  ventas       Venta[]
+  credits      Credit[]
 }

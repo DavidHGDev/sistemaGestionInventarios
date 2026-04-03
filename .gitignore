@@ -3,3 +3,6 @@ node_modules
 .env
 
 /generated/prisma
+/pgadmin_data
+/postgres_data
+
