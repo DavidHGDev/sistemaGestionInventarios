@@ -18,6 +18,13 @@ enum Role {
   AUDITOR
 }
 
+enum TipoDocument {
+  CC
+  TI
+  CE 
+  PPT
+  NIP
+}
 model User {
   id       Int     @id @default(autoincrement())
   name     String
@@ -26,6 +33,7 @@ model User {
   password String
   role     Role    @default(VENDEDOR)
   ventas   Venta[]
+  isActive Boolean @default(true)
 }
 
 model Product {
@@ -91,7 +99,7 @@ model Client {
   phone        String?
   email        String?
   document     String   @unique
-  tipoDocument String
+  tipoDocument TipoDocument
   ventas       Venta[]
   credits      Credit[]
 }

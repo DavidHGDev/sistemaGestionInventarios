@@ -4,22 +4,23 @@ import { verificarToken } from "../middlewares/auth.middleware.js";
 import { verficarRoles, verificarMismoUsuarioOadmin } from "../middlewares/verificarRoles.js";
 import { validarSchema } from "../middlewares/validator.handler.js";
 import { createUserSchema, updateUserSchema, idParamSchema } from "../schemas/user.schema.js";
+import { PERMISOS } from "../config/roles.js";
 
 
 const router = e.Router();
 
 router.get('/',
     verificarToken, 
-    verficarRoles(['ADMIN']), 
+    verficarRoles(PERMISOS.LEER_USUARIOS), 
     getUsers);
 router.get('/:id',
     verificarToken,
-    verficarRoles(['ADMIN']),
+    verficarRoles(PERMISOS.LEER_USUARIOS),
     validarSchema(idParamSchema, 'params'),
     getOneUser);
 router.post('/', 
     verificarToken,
-    verficarRoles(['ADMIN']),
+    verficarRoles(PERMISOS.ESCRIBIR_USUARIOS),
     validarSchema(createUserSchema, 'body'),
     createUser);
 router.patch('/:id', 
@@ -30,7 +31,7 @@ router.patch('/:id',
     updateUser);
 router.delete('/:id', 
     verificarToken,
-    verficarRoles(['ADMIN']),
+    verficarRoles(PERMISOS.ELIMINAR_USUARIOS),
     validarSchema(idParamSchema, 'params'),
     deleteUser);
 
