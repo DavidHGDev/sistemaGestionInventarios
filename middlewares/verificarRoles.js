@@ -15,3 +15,23 @@ export const  verficarRoles = (rolesPermitidos) => {
         next();
     }
 }
+
+export const verificarMismoUsuarioOadmin = (req, res, next) => {
+    const userLogueadoId = req.usuario.id;
+    const roleUserLogueado = req.usuario.role;
+
+    const idAEditar = Number(req.params.id);
+
+    if(roleUserLogueado === 'ADMIN'){
+        return next();
+    }
+
+    if(userLogueadoId === idAEditar){
+        return next();
+    }
+
+    return res.status(403).json({
+        status: 'Error',
+        message: 'Acceso denegado, no tiene permiso para modificar la cuenta'
+    })
+}
