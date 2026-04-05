@@ -15,9 +15,17 @@ export const manejadorDeErrores = (err, req, res, next) => {
         })
     }
 
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        return res.status(400).json({
+            status: 'Error de Sintaxis',
+            message: 'El formato JSON enviado es inválido. Revisa que todas las claves tengan comillas dobles y no sobren comas.'
+        });
+    }
+
     //atrapa cualquier error 
     return res.status(500).json({
         status: 'Error',
-        message: 'Ocurrió un error interno con el servidor. El equipo ya fue notificado'
+        message: 'Ocurrió un error interno con el servidor. El equipo ya fue notificado',
+        error: err.error
     })
 }
