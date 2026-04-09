@@ -4,16 +4,28 @@ class VentaServices {
 
     async getAllVenta(){
         return await prisma.venta.findMany({
-            include: { detalleVenta: true }
+            include: { detalleVenta: true, client: true, user: true }
         })
     }
 
-    async crearVentaConStock(clientId, userId, items){
+    async getOneVenta(id) {
+        const venta = await prisma.venta.findUnique({
+            where: { id: Number(id) },
+            include: {
+                detalleVenta: true,
+                client: true,
+                user: true
+            }
+        });
+
+        if (!venta) throw new Error("Venta no encontrada");
+        return venta;
+    }
+    // 🛠️ Añadimos isContado como parámetro
+    async crearVentaConStock(clientId, userId, items, isContado){
         return await prisma.$transaction( async(tx) => {
             let saldoTotal = 0;
             const detallesListos = [];
-            
-            // 1. LA LIBRETA DE NOTAS 
             const erroresDeInventario = []; 
 
             for(const item of items){
@@ -21,19 +33,16 @@ class VentaServices {
                     where: { id: Number(item.productId)}
                 });
 
-                // 2. Anotamos si no existe y SALTAMOS al siguiente producto
                 if(!producto){
                     erroresDeInventario.push(`El producto con ID ${item.productId} no existe.`);
-                    continue; // 💡 'continue' le dice al ciclo: ignora lo de abajo y pasa al siguiente item
+                    continue; 
                 }
 
-                // 3. Anotamos si no hay stock y SALTAMOS al siguiente producto
                 if(producto.stock < item.cantidadVendida) {
                     erroresDeInventario.push(`Falta stock de ${producto.nameProduct}: pides ${item.cantidadVendida} pero quedan ${producto.stock}.`);
                     continue; 
                 }
 
-                // Si llegó aquí, el producto está perfecto, hacemos la matemática
                 saldoTotal += (producto.price * item.cantidadVendida);
                 detallesListos.push({
                     productId: Number(item.productId),
@@ -47,25 +56,21 @@ class VentaServices {
                 });
             }
 
-            // 🚨4. EL REVISOR FINAL: ¿Hubo algún problema en la revisión?
             if (erroresDeInventario.length > 0) {
-                // Si la libreta tiene anotaciones, AHORA SÍ tiramos el error con todos los mensajes unidos
                 throw new Error(erroresDeInventario.join(" | ")); 
             }
 
-            // 5. Si la libreta está vacía, facturamos tranquilos
-            const nuevaVenta = await tx.ventas.create({
+            // 🛠️ CORRECCIÓN: tx.venta (singular) y añadimos isContado
+            const nuevaVenta = await tx.venta.create({
                 data: {
                     clientId: Number(clientId),
                     userId: Number(userId),
                     saldoTotal: saldoTotal,
-
-                    //creación anidada de los detalles
+                    isContado: isContado, // Guardamos si fue crédito o contado
                     detalleVenta: {
                         create: detallesListos
                     }
                 }, 
-                //aquí regresamos la relación con los detalles de la venta completos. 
                 include: { detalleVenta: true }
             });
 
@@ -73,29 +78,18 @@ class VentaServices {
         });
     }
 
-    async modificarVenta(ventaIdAntigua, userId, nuevosItems) {
-        // 🚀 ABRIMOS LA SUPER TRANSACCIÓN: Todo o Nada
+    // 🛠️ Añadimos isContado como parámetro
+    async modificarVenta(ventaIdAntigua, userId, nuevosItems, isContado) {
         return await prisma.$transaction(async (tx) => {
             
-            // ==========================================
-            // FASE 1: REVERSAR LA FACTURA VIEJA
-            // ==========================================
-            
-            // 1. Buscamos la factura original en la base de datos
             const ventaAntigua = await tx.venta.findUnique({
                 where: { id: Number(ventaIdAntigua) },
                 include: { detalleVenta: true }
             });
 
-            // 2. Validaciones de seguridad
-            if (!ventaAntigua) {
-                throw new Error("La venta que intentas modificar no existe.");
-            }
-            if (ventaAntigua.status === "ANULADA") {
-                throw new Error("No puedes modificar una venta que ya fue anulada previamente.");
-            }
+            if (!ventaAntigua) throw new Error("La venta que intentas modificar no existe.");
+            if (ventaAntigua.status === "ANULADA") throw new Error("No puedes modificar una venta anulada.");
 
-            // 3. Devolver los productos viejos a la bodega (Incrementar stock)
             for (const detalle of ventaAntigua.detalleVenta) {
                 await tx.product.update({
                     where: { id: detalle.productId },
@@ -103,22 +97,15 @@ class VentaServices {
                 });
             }
 
-            // 4. Sellar la factura vieja como ANULADA
             await tx.venta.update({
                 where: { id: Number(ventaIdAntigua) },
                 data: { status: "ANULADA" }
             });
 
-
-            // ==========================================
-            // FASE 2: PROCESAR EL NUEVO CARRITO
-            // ==========================================
-            
             let saldoTotal = 0;
             const detallesListos = [];
-            const erroresDeInventario = []; // Nuestra libreta de notas
+            const erroresDeInventario = []; 
 
-            // 5. Recorrer los nuevos items que mandó el frontend
             for (const item of nuevosItems) {
                 const producto = await tx.product.findUnique({
                     where: { id: Number(item.productId) }
@@ -134,7 +121,6 @@ class VentaServices {
                     continue;
                 }
 
-                // Matemática y empaque
                 saldoTotal += (producto.price * item.cantidadVendida);
 
                 detallesListos.push({
@@ -143,29 +129,23 @@ class VentaServices {
                     precioVendido: producto.price
                 });
 
-                // 6. Sacar los nuevos productos de la bodega (Decrementar stock)
                 await tx.product.update({
                     where: { id: Number(item.productId) },
                     data: { stock: { decrement: Number(item.cantidadVendida) } }
                 });
             }
 
-            // ==========================================
-            // FASE 3: VEREDICTO FINAL Y CREACIÓN
-            // ==========================================
-
-            // 7. Si hubo errores en la fase 2, rompemos la transacción aquí.
-            // ¡Esto cancela TODO! La factura vieja vuelve a estar ACTIVA y el stock no se toca.
             if (erroresDeInventario.length > 0) {
                 throw new Error(erroresDeInventario.join(" | "));
             }
 
-            // 8. Si todo está perfecto, emitimos la NUEVA factura
+            // 🛠️ Añadimos isContado en la nueva venta
             const nuevaVenta = await tx.venta.create({
                 data: {
-                    clientId: ventaAntigua.clientId, // Mantenemos el mismo cliente
-                    userId: Number(userId),          // El cajero que está haciendo la modificación
+                    clientId: ventaAntigua.clientId, 
+                    userId: Number(userId),          
                     saldoTotal: saldoTotal,
+                    isContado: isContado, // Guardamos el nuevo estado de pago
                     detalleVenta: {
                         create: detallesListos
                     }
@@ -173,7 +153,7 @@ class VentaServices {
                 include: { detalleVenta: true }
             });
 
-            return nuevaVenta; // Devolvemos la factura impecable
+            return nuevaVenta; 
         });
     }
 }

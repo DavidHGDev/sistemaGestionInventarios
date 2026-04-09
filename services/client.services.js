@@ -30,6 +30,19 @@ class ClientService {
             where: {id: Number(id)}
         })
     }
+
+    async searchClients(termino) {
+        return await prisma.client.findMany({
+            where: {
+                OR: [
+                    { document: { contains: termino } },
+                    { name: { contains: termino, mode: 'insensitive' } }
+                ]
+            },
+            take: 10 // Solo los 10 mejores resultados
+    });
 }
+}
+
 
 export default new ClientService();

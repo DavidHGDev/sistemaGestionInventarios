@@ -12,6 +12,17 @@ export async function getAllClients(req, res) {
     }
 }
 
+export const searchClients = async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) return res.status(200).json([]);
+        const clientes = await clientServices.searchClients(q);
+        res.status(200).json(clientes);
+    } catch (error) {
+        res.status(500).json({ status: 'Error', message: 'Error buscando clientes' });
+    }
+};
+
 export async function getOneClients(req, res) {
     try {
         const { id } = req.params;
@@ -53,3 +64,4 @@ export async function deleteClient(req, res) {
         res.status(500).json({ status: 'Error', message: error.message })
     }
 }
+

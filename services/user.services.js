@@ -55,19 +55,15 @@ class UserServices {
     async updateUser({ id, ...data }) {
         const { name, lastName, email, password, role } = data;
         const saltRounds = 10;
-        const hashPassword = await bcrypt.hash(password, saltRounds);
+
+        let datosAActualizar = { name, lastName, email, role } 
+        if(password){
+            datosAActualizar.password = await bcrypt.hash(password, saltRounds);
+        }
         return await prisma.user.update({
-            where: {
-                id: id
-            },
-            data: {
-                name,
-                lastName,
-                email,
-                password: hashPassword, 
-                role
-            }
-            , select: this.#userSelect
+            where: { id: id },
+            data: datosAActualizar,
+            select: this.#userSelect
         })
     }
 

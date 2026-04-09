@@ -1,4 +1,4 @@
-import { getAllClients, getOneClients, createClient, updateClient, deleteClient } from "../controllers/client.controllers.js";
+import { getAllClients, getOneClients, createClient, updateClient, deleteClient, searchClients } from "../controllers/client.controllers.js";
 import e from "express";
 import { verificarToken } from '../middlewares/auth.middleware.js';
 import { verficarRoles } from '../middlewares/verificarRoles.js';
@@ -12,6 +12,9 @@ router.get('/',
     verificarToken, 
     verficarRoles(PERMISOS.LEER_CLIENTES), 
     getAllClients);
+
+router.get('/search', verificarToken, searchClients);
+
 router.get('/:id', 
     verificarToken,
     verficarRoles(PERMISOS.LEER_CLIENTES),
@@ -32,6 +35,6 @@ router.delete('/:id',
     verificarToken,
     verficarRoles(PERMISOS.ELIMINAR_CLIENTES),
     validarSchema(idParamSchema, 'params'),
-    deleteClient)
+    deleteClient);
 
 export default router;
