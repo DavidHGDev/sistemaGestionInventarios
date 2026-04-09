@@ -7,8 +7,8 @@ import clienteRouter from './client.routes.js'
 
 const router = e.Router();
 
-router.use('/login', authLogin);
-router.use('/user', userRouter); // lo manda a usuario
+router.use('/auth', authLogin);
+router.use('/users', userRouter); // lo manda a usuario
 router.use('/ventas', ventasRouter); 
 router.use('/clients', clienteRouter);
 

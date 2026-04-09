@@ -8,7 +8,8 @@ class UserServices {
         name: true,
         lastName: true,
         email: true,
-        role: true
+        role: true,
+        isActive: true
     }
     #ventasSelect = {
         select: {
