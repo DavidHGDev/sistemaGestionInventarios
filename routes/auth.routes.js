@@ -3,6 +3,6 @@ import e from "express";
 
 const router = e.Router();
 
-router.post('/', authLogin);
+router.post('/login', authLogin);
 
 export default router;
