@@ -5,7 +5,7 @@ import cors from 'cors';
 
 // const corsOption = {
 //     origin: 'http://localhost:5500/',
-//     optionSuccesStatus: 200
+//     optionsSuccesStatus: 200
 // }
 
 const app = e();
