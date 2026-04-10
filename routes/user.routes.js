@@ -1,5 +1,5 @@
 import e from "express";
-import { getUsers, getOneUser, createUser, updateUser, deleteUser } from "../controllers/user.controllers.js";
+import { getUsers, getOneUser, createUser, updateUser, deleteUser, searchUsers } from "../controllers/user.controllers.js";
 import { verificarToken } from "../middlewares/auth.middleware.js";
 import { verficarRoles, verificarMismoUsuarioOadmin } from "../middlewares/verificarRoles.js";
 import { validarSchema } from "../middlewares/validator.handler.js";
@@ -13,9 +13,12 @@ router.get('/',
     verificarToken, 
     verficarRoles(PERMISOS.LEER_USUARIOS), 
     getUsers);
+
+router.get('/search', verificarToken, verficarRoles('ADMIN'), searchUsers);
+
 router.get('/:id',
     verificarToken,
-    verficarRoles(PERMISOS.LEER_USUARIOS),
+    verificarMismoUsuarioOadmin,
     validarSchema(idParamSchema, 'params'),
     getOneUser);
 router.post('/', 

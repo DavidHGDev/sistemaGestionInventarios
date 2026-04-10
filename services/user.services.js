@@ -73,6 +73,25 @@ class UserServices {
             select: this.#userSelect
         })
     }
+
+    async searchUsers(termino) {
+        // Si el término es un número exacto, lo buscamos por ID
+        const esNumero = !isNaN(termino) && termino.trim() !== '';
+        
+        const condiciones = [
+            { name: { contains: termino, mode: 'insensitive' } },
+            { email: { contains: termino, mode: 'insensitive' } },
+            { lastName: { contains: termino, mode: 'insensitive' } }
+        ];
+
+        if (esNumero) condiciones.push({ id: Number(termino) });
+
+        return await prisma.user.findMany({
+            where: { OR: condiciones },
+            select: { id: true, name: true, lastName: true, email: true, role: true },
+            take: 8 // Límite para el autocompletado
+        });
+    }
 }
 
 export default new UserServices();

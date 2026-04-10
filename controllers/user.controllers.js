@@ -5,6 +5,17 @@ export async function getUsers(req, res){
     res.status(200).json(users);
 }
 
+export const searchUsers = async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) return res.status(200).json([]);
+        const usuarios = await UserServices.searchUsers(q);
+        res.status(200).json(usuarios);
+    } catch (error) {
+        res.status(500).json({ status: 'Error', message: 'Error buscando usuarios' });
+    }
+};
+
 export async function getOneUser(req, res) {
     const { id } = req.params;
     const user = await UserServices.getOneUser(id);
