@@ -4,10 +4,13 @@ class ProviderServices {
     
     async getAllProviders() {
         return await prisma.provider.findMany({
-            // Traemos los productos que nos surte para saber qué le compramos
-            include: { products: true } 
+            include: {
+                _count: {
+                    select: { products: true }
+                }
+            }
         });
-    }
+    }   
 
     async getOneProvider(id) {
         const provider = await prisma.provider.findUnique({

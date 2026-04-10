@@ -5,6 +5,7 @@ import ventasRouter from './ventas.routes.js'
 import clienteRouter from './client.routes.js'
 import productRouter from './product.routes.js'
 import providerRouter from './provider.routes.js'
+import categoryRoutes from './category.routes.js';
 
 
 const router = e.Router();
@@ -15,5 +16,6 @@ router.use('/sales', ventasRouter);
 router.use('/clients', clienteRouter);
 router.use('/products', productRouter);
 router.use('/providers', providerRouter);
+router.use('/categories', categoryRoutes);
 
 export default router;
